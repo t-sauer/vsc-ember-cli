@@ -1,14 +1,18 @@
-import {window, commands, workspace} from 'vscode';
+import {window, commands, workspace, languages} from 'vscode';
 import * as embercli from './src/ember-cli';
 import * as emberOps from './src/ember-ops';
 import * as fileOps from './src/file-ops';
+import { EmberCompletionItemProvider } from './src/ember-suggestions';
 
 var emberManager : embercli.EmberCliManager;
 var installed : boolean = false;
 
 export function activate() {
-    execute('setupProject');
-	
+  execute('setupProject');
+
+  const completionStarters = ['{', '(', ' '];
+  languages.registerCompletionItemProvider('handlebars', new EmberCompletionItemProvider(), ...completionStarters);
+
 	// Register Commands
 	commands.registerCommand('extension.addon', () => execute('addon'));
 	commands.registerCommand('extension.setupProject', () => execute('setupProject'));
@@ -22,25 +26,25 @@ export function activate() {
 	commands.registerCommand('extension.version', () => execute('version'));
 	commands.registerCommand('extension.test', () => execute('test'));
 	commands.registerCommand('extension.testServer', () => execute('testServer'));
-    commands.registerCommand('extension.installTypings', () => execute('installTypings'));
+  commands.registerCommand('extension.installTypings', () => execute('installTypings'));
 }
 
 function execute(cmd? : string, arg? : Array<any>) {
 	if (!emberManager) emberManager = new embercli.EmberCliManager();
 	if (!installed) installed = emberOps.isEmberCliInstalled();
 	if (!cmd) return;
-		
-	// Ensure Ember Cli is installed 
+
+	// Ensure Ember Cli is installed
 	if (!installed) {
 		return window.showErrorMessage('Ember Cli is not installed');
 	};
-	
+
 	let ecmd = emberManager[cmd];
 	if (typeof ecmd === 'function') {
 		try {
 			ecmd.apply(emberManager, arg);
 		} catch (e) {
-			// Well, clearly we didn't call a function			
+			// Well, clearly we didn't call a function
 			console.log(e);
 		}
 	}
